@@ -3,15 +3,24 @@ from dotenv import load_dotenv
 import datetime as dt
 import time
 import uuid
-import socket
-from confluent_kafka import Producer
 import logging
+from confluent_kafka.admin import AdminClient, NewTopic
+from confluent_kafka import Producer
 import cv2
 import psycopg2
 import psycopg2.extras
 import pytz
 import json
 from ultralytics import YOLO
+
+logging.basicConfig(format='%(asctime)s %(message)s',
+                        datefmt='%Y-%m-%d %H:%M:%S',
+                        filename='producer.log',
+                        filemode='w')
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+admin_client = AdminClient({"bootstrap.servers": "localhost:9092"})
 
 
 def getAFrame(camera_ip):
@@ -77,31 +86,19 @@ def predictContents(image):
         return predictions
 
 
-def get_kafka_ip():
-    kafka_container = 'pythonproject-kafka-1'
-    kafka_ip = socket.gethostbyname(kafka_container)
-    return kafka_ip
-
-
 def kafka_logs():
-    logging.basicConfig(format='%(asctime)s %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S',
-                        filename='producer.log',
-                        filemode='w')
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
     return logger
 
 
-def kafka_producer(ip):
+def kafka_producer():
     """Initiate Kafka Producer"""
-    p = Producer({'bootstrap.servers': str(ip) + ':9092'})
+    p = Producer({'bootstrap.servers':'localhost:9092'})
     print('Kafka Producer has been initiated...')
     return p
 
 
-def receipt(logger, err,msg):
+def receipt(err, msg):
     if err is not None:
         print('Error: {}'.format(err))
     else:
@@ -110,15 +107,15 @@ def receipt(logger, err,msg):
         print(message)
 
 
-def write_data(id, filepath, contents, producer):
-    data = {
-        'uuid': id,
-        'filepath': filepath,
-        'contents': contents
-    }
-    dump = json.dumps(data)
+def write_data(message, producer):
+    #data = {
+     #   'uuid': id,
+      #  'filepath': filepath,
+       # 'contents': contents
+    #}
+    #dump = json.dumps(data)
     producer.poll(1)
-    producer.produce('prediction-meta', dump.encode('utf-8'), callback = receipt)
+    producer.produce('test', message.encode('utf-8'), callback=receipt)
     producer.flush()
     time.sleep(3)
 
@@ -151,17 +148,23 @@ if __name__ == '__main__':
     Save captured frame to local file system.
     Predict contents of the image.
     Writes prediction(s) to a database."""
-    load_dotenv()
-    CAMERA_IP = os.getenv('CAMERA_IP_ADDRESS')
+    #load_dotenv()
+    #CAMERA_IP = os.getenv('CAMERA_IP_ADDRESS')
     #frame = getAFrame(CAMERA_IP)
-    VID_CAP_DIR = os.getenv('VID_CAP_DIR')
+    #VID_CAP_DIR = os.getenv('VID_CAP_DIR')
     #id, path = saveFrame(VID_CAP_DIR, frame)
     #predictions = predictContents(frame)
     #predictions = predictContents("bus.jpg")
-    log = kafka_logs()
-    ip = get_kafka_ip()
-    prod = kafka_producer(ip)
-    #write_data("debug", "bus.jpg", predictions, prod)
+
+
+    # Create Topic list, append new topic
+    topic_list = []
+    topic_list.append(NewTopic("test", 1, 1))
+    # Publish topic list to admin client
+    admin_client.create_topics(topic_list)
+    prod = kafka_producer()
+    msg = "this is a test message"
+    write_data(msg, prod)
     #createEntry(id, path, predictions)
     # TODO: close camera
     # TODO: loop
