@@ -86,11 +86,6 @@ def predictContents(image):
         return predictions
 
 
-def kafka_logs():
-
-    return logger
-
-
 def kafka_producer():
     """Initiate Kafka Producer"""
     p = Producer({'bootstrap.servers':'localhost:9092'})
@@ -107,15 +102,15 @@ def receipt(err, msg):
         print(message)
 
 
-def write_data(message, producer):
-    #data = {
-     #   'uuid': id,
-      #  'filepath': filepath,
-       # 'contents': contents
-    #}
-    #dump = json.dumps(data)
+def write_data(id, filepath, contents, producer):
+    data = {
+        'uuid': id,
+        'filepath': filepath,
+        'contents': contents
+    }
+    dump = json.dumps(data)
     producer.poll(1)
-    producer.produce('test', message.encode('utf-8'), callback=receipt)
+    producer.produce('test', dump.encode('utf-8'), callback=receipt)
     producer.flush()
     time.sleep(3)
 
@@ -154,7 +149,7 @@ if __name__ == '__main__':
     #VID_CAP_DIR = os.getenv('VID_CAP_DIR')
     #id, path = saveFrame(VID_CAP_DIR, frame)
     #predictions = predictContents(frame)
-    #predictions = predictContents("bus.jpg")
+    predictions = predictContents("bus.jpg")
 
 
     # Create Topic list, append new topic
@@ -164,7 +159,7 @@ if __name__ == '__main__':
     admin_client.create_topics(topic_list)
     prod = kafka_producer()
     msg = "this is a test message"
-    write_data(msg, prod)
+    write_data("test", "bus.jpg", predictions, prod)
     #createEntry(id, path, predictions)
     # TODO: close camera
     # TODO: loop
