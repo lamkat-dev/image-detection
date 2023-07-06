@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-import datetime as dt
 import time
 import uuid
 import logging
@@ -9,7 +8,6 @@ from confluent_kafka import Producer
 import cv2
 import psycopg2
 import psycopg2.extras
-import pytz
 import json
 from ultralytics import YOLO
 
@@ -54,7 +52,8 @@ def saveFrame(VID_CAP_DIR, image):
     """
     psycopg2.extras.register_uuid()
     id = uuid.uuid4()
-    filepath = VID_CAP_DIR + str(id) + ".jpg"
+    filepath = str(VID_CAP_DIR) + str(id) + ".jpg"
+    print(filepath)
     status = cv2.imwrite(filepath, image)
     if status:
         print("Image saved successfully")
@@ -104,7 +103,7 @@ def receipt(err, msg):
 
 def write_data(id, filepath, contents, producer):
     data = {
-        'uuid': id,
+        'uuid': str(id),
         'filepath': filepath,
         'contents': contents
     }
@@ -114,26 +113,6 @@ def write_data(id, filepath, contents, producer):
     producer.flush()
     time.sleep(3)
 
-def createEntry(id, filepath, contents):
-    """Connect to database and write entry to table.
-
-    Keyword Arguments:
-    id -- uuid for the entry
-    filepath -- full path and name of the locally saved image
-    contents -- contents of the image as predicted by the model"""
-    conn = psycopg2.connect("dbname=postgres user=postgres password=HeadAche")
-    cur = conn.cursor()
-
-    if cur.closed:
-        print("Cursor creation unsucessful")
-    timestamp = pytz.utc.localize(dt.datetime.utcnow())
-
-    cur.execute("INSERT INTO images (id, created, fullpath, description) VALUES (%s, %s, %s, %s)",
-                (id, timestamp, filepath, contents))
-
-    cur.execute("SELECT * FROM images")
-    for item in cur.fetchall():
-        print(item)
 
 if __name__ == '__main__':
     """Use a Machine Learning model to predict the contents of an image.
@@ -143,13 +122,13 @@ if __name__ == '__main__':
     Save captured frame to local file system.
     Predict contents of the image.
     Writes prediction(s) to a database."""
-    #load_dotenv()
-    #CAMERA_IP = os.getenv('CAMERA_IP_ADDRESS')
-    #frame = getAFrame(CAMERA_IP)
-    #VID_CAP_DIR = os.getenv('VID_CAP_DIR')
-    #id, path = saveFrame(VID_CAP_DIR, frame)
-    #predictions = predictContents(frame)
-    predictions = predictContents("bus.jpg")
+    load_dotenv("app.env")
+    CAMERA_IP = os.getenv('CAMERA_IP_ADDRESS')
+    frame = getAFrame(CAMERA_IP)
+    VID_CAP_DIR = os.getenv('VID_CAP_DIR')
+    id, path = saveFrame(VID_CAP_DIR, frame)
+    predictions = predictContents(frame)
+    #predictions = predictContents("bus.jpg")
 
 
     # Create Topic list, append new topic
@@ -158,8 +137,6 @@ if __name__ == '__main__':
     # Publish topic list to admin client
     admin_client.create_topics(topic_list)
     prod = kafka_producer()
-    msg = "this is a test message"
-    write_data("test", "bus.jpg", predictions, prod)
-    #createEntry(id, path, predictions)
+    write_data(id, path, predictions, prod)
     # TODO: close camera
     # TODO: loop
