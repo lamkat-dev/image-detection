@@ -18,7 +18,7 @@ services:
     environment:
       - ZOOKEEPER_CLIENT_PORT=2181
     networks:
-      - kafka
+      - net
 
   kafka:
     image: confluentinc/cp-kafka:latest
@@ -34,7 +34,7 @@ services:
       - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
       - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
     networks:
-      - kafka
+      - net
 
 
   code:
@@ -52,9 +52,3 @@ networks:
     ipam:
       config:
         - subnet: 10.0.56.0/24
-  kafka:
-    driver: overlay
-    attachable: true
-    ipam:
-      config:
-        - subnet: 10.0.60.0/24
