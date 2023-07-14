@@ -2,3 +2,5 @@
 *.log
 # ignore env files
 *.env
+# ignore pip venv files
+Pipfile*
