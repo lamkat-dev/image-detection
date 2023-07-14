@@ -1,5 +1,6 @@
 import os
-#from dotenv import load_dotenvimport time
+from dotenv import load_dotenv
+import time
 import uuid
 import logging
 from confluent_kafka.admin import AdminClient, NewTopic
