@@ -26,25 +26,15 @@ services:
     depends_on:
       - zookeeper
     ports:
-     - "9102:9102"
+     - "9092:9092"
     environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_NODE_ID: 1
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
-      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka-kraft:29092,PLAINTEXT_HOST://localhost:9092'
-      KAFKA_JMX_PORT: 9101
-      KAFKA_JMX_HOSTNAME: localhost
-      KAFKA_PROCESS_ROLES: 'broker,controller'
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-kraft:29093'
-      KAFKA_LISTENERS: 'PLAINTEXT://kafka-kraft:29092,CONTROLLER://kafka-kraft:29093,PLAINTEXT_HOST://0.0.0.0:9092'
-      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
-      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
-      CLUSTER_ID: 'MkU3OESSSSSwNTJENDM2Qk'
-      KAFKA_LOGS_DIR: '/data/app'
-
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+      # KAFKA_ADVERTISED_LISTENERS is the hostname:port that clients will connect to
+      # PLAINTEXT removes authentication and encryption from the listener.
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
     networks:
-      - net
+      - kafka
 
 
   code:
@@ -62,6 +52,9 @@ networks:
     ipam:
       config:
         - subnet: 10.0.56.0/24
-
-volumes:
-  VOL_KAFKA_DATA:
+  kafka:
+    driver: overlay
+    attachable: true
+    ipam:
+      config:
+        - subnet: 10.0.60.0/24
